@@ -16,7 +16,7 @@ use tokio::sync::Mutex;
 use util::ifaces;
 use util::Error;
 
-mod conn_test;
+mod test;
 
 pub const DEFAULT_DEST_ADDR: &str = "224.0.0.251:5353";
 
