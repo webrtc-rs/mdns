@@ -18,21 +18,18 @@ use util::Error;
 
 mod test;
 
-pub const DEFAULT_DEST_ADDR: &str = "224.0.0.251:5353";
+pub(crate) const DEFAULT_DEST_ADDR: &str = "224.0.0.251:5353";
 
 const INBOUND_BUFFER_SIZE: usize = 512;
-const DEFAULT_QUERY_INTERVAL: Duration = Duration::from_secs(1);
 const MAX_MESSAGE_RECORDS: usize = 3;
 const RESPONSE_TTL: u32 = 120;
 
-// Conn represents a mDNS Server
+/// Conn represents a mDNS Server
 pub struct DnsConn {
     socket: Arc<UdpSocket>,
     dst_addr: SocketAddr,
-
     query_interval: Duration,
     queries: Arc<Mutex<Vec<Query>>>,
-
     is_server_closed: Arc<atomic::AtomicBool>,
     close_server: mpsc::Sender<()>,
 }
@@ -50,6 +47,12 @@ struct QueryResult {
 impl DnsConn {
     /// server establishes a mDNS connection over an existing connection
     pub fn server(addr: SocketAddr, config: Config) -> Result<Self, Error> {
+        let socket = Self::create_socket(addr)?;
+
+        Self::initialize_server(socket, config)
+    }
+
+    pub(crate) fn create_socket(addr: SocketAddr) -> Result<UdpSocket, Error> {
         let socket = socket2::Socket::new(
             socket2::Domain::IPV4,
             socket2::Type::DGRAM,
@@ -63,7 +66,6 @@ impl DnsConn {
         socket.set_reuse_address(true)?;
         socket.set_broadcast(true)?;
         socket.set_nonblocking(true)?;
-
         socket.bind(&SockAddr::from(addr))?;
         {
             let mut join_error_count = 0;
@@ -95,6 +97,10 @@ impl DnsConn {
 
         let socket = UdpSocket::from_std(socket.into())?;
 
+        Ok(socket)
+    }
+
+    pub fn initialize_server(socket: UdpSocket, config: Config) -> Result<Self, Error> {
         let local_names = config
             .local_names
             .iter()
@@ -107,7 +113,7 @@ impl DnsConn {
 
         let (close_server_send, close_server_rcv) = mpsc::channel(1);
 
-        let c = DnsConn {
+        let conn = DnsConn {
             query_interval: if config.query_interval != Duration::from_secs(0) {
                 config.query_interval
             } else {
@@ -121,8 +127,8 @@ impl DnsConn {
             close_server: close_server_send,
         };
 
-        let queries = c.queries.clone();
-        let socket = Arc::clone(&c.socket);
+        let queries = conn.queries.clone();
+        let socket = Arc::clone(&conn.socket);
 
         tokio::spawn(async move {
             DnsConn::start(
@@ -136,7 +142,7 @@ impl DnsConn {
             .await
         });
 
-        Ok(c)
+        Ok(conn)
     }
 
     /// Close closes the mDNS Conn

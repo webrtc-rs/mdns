@@ -8,25 +8,26 @@ use util::Error;
 
 use std::collections::HashMap;
 
-// A Builder allows incrementally packing a DNS message.
-//
-// Example usage:
-//	b := NewBuilder(Header{...})
-//	b.enable_compression()
-//	// Optionally start a section and add things to that section.
-//	// Repeat adding sections as necessary.
-//	buf, err := b.Finish()
-//	// If err is nil, buf[2:] will contain the built bytes.
+/// A Builder allows incrementally packing a DNS message.
+///
+/// Example usage:
+/// ```rust ignore
+///	let b = Builder::new(header);
+///	b.enable_compression();
+///	// Optionally start a section and add things to that section.
+///	// Repeat adding sections as necessary.
+///	let buf = b.Finish().unwrap();
+/// ```
 #[derive(Default)]
 pub struct Builder {
-    // msg is the storage for the message being built.
+    /// msg is the storage for the message being built.
     pub msg: Option<Vec<u8>>,
 
-    // section keeps track of the current section being built.
+    /// section keeps track of the current section being built.
     pub section: Section,
 
-    // header keeps track of what should go in the header when Finish is
-    // called.
+    /// header keeps track of what should go in the header when Finish is
+    /// called.
     pub header: HeaderInternal,
 
     // start is the starting index of the bytes allocated in msg for header.
@@ -62,10 +63,6 @@ impl Builder {
             },
             compression: None,
         }
-
-        //var hb [HEADER_LEN]byte
-        //b.msg = append(b.msg, hb[:]...)
-        //return b
     }
 
     // enable_compression enables compression in the Builder.

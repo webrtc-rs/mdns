@@ -12,10 +12,12 @@ pub struct Config {
     pub local_names: Vec<String>,
 }
 
+pub(crate) const DEFAULT_QUERY_INTERVAL: Duration = Duration::from_secs(1);
+
 impl Default for Config {
     fn default() -> Self {
         Self {
-            query_interval: Duration::from_secs(2),
+            query_interval: DEFAULT_QUERY_INTERVAL,
             local_names: vec![],
         }
     }
